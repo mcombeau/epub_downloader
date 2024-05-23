@@ -30,7 +30,7 @@ To run the script, use the following command:
 
 ```bash
 Copy code
-python fetch_epub.py [book_url] [-v]
+python epub_downloader.py [book_url] [-v]
 ```
 
 - `book_url`: The URL of the book on epub.pub
@@ -39,7 +39,7 @@ python fetch_epub.py [book_url] [-v]
 ## Example
 
 ```bash
-python fetch_epub.py https://www.epub.pub/book/it-by-stephen-king -v
+python epub_downloader.py https://www.epub.pub/book/it-by-stephen-king -v
 ```
 
 # Notes
