@@ -1,3 +1,33 @@
+"""
+epub_downloader.py
+
+This script downloads an ebook from https://www.epub.pub/ and creates an EPUB file.
+It extracts the necessary content from the specified book URL and compiles it into a single EPUB file.
+
+Usage:
+    python epub_downloader.py <book_url> [-v]
+
+Arguments:
+    book_url  The URL of the book on https://www.epub.pub/
+    -v, --verbose  Enable verbose output
+
+Dependencies:
+    - argparse
+    - os
+    - requests
+    - shutil
+    - zipfile
+    - BeautifulSoup (from bs4)
+    - tqdm
+    - xml.etree.ElementTree
+
+Note:
+    If you enjoy an ebook you read using this script, please consider supporting the author by purchasing the book from a reputable retailer.
+
+Repository:
+    https://github.com/mcombeau/epub_downloader
+"""
+
 import argparse
 import os
 import requests
