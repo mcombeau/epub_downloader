@@ -1,12 +1,12 @@
-import os
-import sys
-import requests
-import zipfile
 import argparse
+import os
+import requests
 import shutil
+import sys
+import zipfile
+from bs4 import BeautifulSoup, Tag
 from requests.exceptions import RequestException
 from time import sleep
-from bs4 import BeautifulSoup, Tag
 from tqdm import tqdm
 from xml.etree import ElementTree as ET
 
@@ -197,12 +197,14 @@ def get_epub_base_url(book_url, verbose=False):
     log(f"Fetching Read Online URL: {read_online_url}", verbose)
     content_opf_url = get_content_opf_url(read_online_url, verbose=verbose)
     epub_base_url = content_opf_url.rsplit("/", 1)[0]
-    return epub_base_url, content_opf_url
+    return epub_base_url
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Fetch and create an EPUB file.")
-    parser.add_argument("book_url", help="The URL of the book on epub.pub")
+    parser = argparse.ArgumentParser(
+        description="Download an ebook from https://www.epub.pub/ and create an EPUB file."
+    )
+    parser.add_argument("book_url", help="The URL of the book on https://www.epub.pub/")
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose output"
     )
@@ -215,8 +217,8 @@ def main():
         sys.exit(1)
 
     try:
-        epub_base_url, content_opf_url = get_epub_base_url(book_url, verbose=verbose)
-        epub_filename = content_opf_url.split("/")[-2] + ".epub"
+        epub_base_url = get_epub_base_url(book_url, verbose=verbose)
+        epub_filename = book_url.split("/")[-1] + ".epub"
         output_base_dir = "downloaded_epubs"
         epub_dir = os.path.join(
             output_base_dir, epub_filename.rsplit(".", 1)[0] + "_temp"
