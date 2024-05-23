@@ -46,4 +46,4 @@ python epub_downloader.py https://www.epub.pub/book/it-by-stephen-king -v
 
 - Ensure that the provided book URL is from the https://www.epub.pub/ domain.
 - The script will create a temporary directory to store downloaded files, which will be cleaned up after the EPUB is created.
-- **Support Authors: If you enjoy a book you downloaded using this script, please consider supporting the author by purchasing the book from a legitimate retailer.**
+- **Support Authors: If you enjoy an ebook you downloaded using this script, please consider supporting the author by purchasing the book from a legitimate retailer.**
