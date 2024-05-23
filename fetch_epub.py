@@ -1,11 +1,12 @@
 import os
+import sys
 import requests
 import zipfile
 import argparse
 import shutil
 from requests.exceptions import RequestException
 from time import sleep
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from tqdm import tqdm
 from xml.etree import ElementTree as ET
 
@@ -45,28 +46,21 @@ def get_content_opf_path(base_url, output_dir, verbose=False):
 
     try:
         with open(container_xml_path, "r") as file:
-            container_xml_content = file.read()
-            tree = ET.ElementTree(ET.fromstring(container_xml_content))
+            tree = ET.ElementTree(ET.fromstring(file.read()))
             root = tree.getroot()
             namespace = {"n": "urn:oasis:names:tc:opendocument:xmlns:container"}
             rootfile_element = root.find("n:rootfiles/n:rootfile", namespace)
-            if rootfile_element is None:
+            if rootfile_element is None or not rootfile_element.get("full-path"):
                 raise RuntimeError(
                     "Failed to find the rootfile element in container.xml."
                 )
-            content_opf_path = rootfile_element.get("full-path")
-            if not content_opf_path:
-                raise RuntimeError(
-                    "The full-path attribute is missing or empty in the rootfile element."
-                )
+            content_opf_path = str(rootfile_element.get("full-path"))
             log(f"Found content.opf at: {content_opf_path}", verbose)
     except Exception as e:
         log(f"Error reading container.xml: {e}", verbose)
         raise
-
     finally:
-        if os.path.exists(container_xml_path):
-            os.remove(container_xml_path)
+        os.remove(container_xml_path)
 
     return content_opf_path
 
@@ -97,8 +91,7 @@ def create_container_xml(output_dir, content_opf_relative_path, verbose=False):
 
 def parse_content_opf(content_opf_path, verbose=False):
     with open(content_opf_path, "r") as file:
-        content_opf = file.read()
-    soup = BeautifulSoup(content_opf, "xml")
+        soup = BeautifulSoup(file.read(), "xml")
     items = soup.find_all("item")
     log(f"Found {len(items)} items in content.opf", verbose)
     return items
@@ -123,22 +116,18 @@ def create_epub_archive(output_dir, epub_filename, verbose=False):
         )
         for foldername, _, filenames in os.walk(output_dir):
             for filename in filenames:
-                if filename == "mimetype":
-                    continue
-                file_path = os.path.join(foldername, filename)
-                arcname = os.path.relpath(file_path, output_dir)
-                log(f"Adding {file_path} as {arcname} to EPUB", verbose)
-                epub.write(file_path, arcname)
+                if filename != "mimetype":
+                    file_path = os.path.join(foldername, filename)
+                    arcname = os.path.relpath(file_path, output_dir)
+                    log(f"Adding {file_path} as {arcname} to EPUB", verbose)
+                    epub.write(file_path, arcname)
     log(f"EPUB file created: {epub_path}", True)
 
 
 def create_epub(base_url, output_dir, epub_filename, verbose=False):
     try:
         os.makedirs(output_dir, exist_ok=True)
-
         content_opf_path = get_content_opf_path(base_url, output_dir, verbose=verbose)
-        if not content_opf_path:
-            raise RuntimeError("The content_opf_path is empty or None.")
         content_opf_full_path = os.path.join(output_dir, content_opf_path)
         content_opf_dir = os.path.dirname(content_opf_full_path)
         os.makedirs(content_opf_dir, exist_ok=True)
@@ -148,10 +137,7 @@ def create_epub(base_url, output_dir, epub_filename, verbose=False):
         ):
             raise RuntimeError(f"Failed to fetch content.opf from {base_url}")
 
-        if "OEBPS" in content_opf_path:
-            base_file_url = f"{base_url}/OEBPS"
-        else:
-            base_file_url = base_url
+        base_file_url = f"{base_url}/OEBPS" if "OEBPS" in content_opf_path else base_url
 
         toc_ncx_url = f"{base_file_url}/toc.ncx"
         toc_ncx_path = os.path.join(content_opf_dir, "toc.ncx")
@@ -170,7 +156,6 @@ def create_epub(base_url, output_dir, epub_filename, verbose=False):
         )
 
         create_epub_archive(output_dir, epub_filename, verbose=verbose)
-
     except Exception as e:
         log(f"An error occurred: {e}", verbose)
         log(f"Cleaning up temporary directory: {output_dir}", verbose)
@@ -181,25 +166,62 @@ def create_epub(base_url, output_dir, epub_filename, verbose=False):
     log(f"Cleaned up temporary directory: {output_dir}", verbose)
 
 
+def get_content_opf_url(spread_url, verbose=False):
+    response = requests.get(spread_url)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.content, "html.parser")
+    content_opf_input = soup.find("input", id="assetUrl")
+    if (
+        not content_opf_input
+        or not isinstance(content_opf_input, Tag)
+        or not content_opf_input.get("value")
+    ):
+        raise RuntimeError("Failed to find the content.opf URL in the spread page.")
+    content_opf_url = str(content_opf_input["value"])
+    log(f"Found content.opf URL: {content_opf_url}", verbose)
+    return content_opf_url
+
+
+def get_epub_base_url(book_url, verbose=False):
+    response = requests.get(book_url)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.content, "html.parser")
+    read_online_link = soup.find("a", class_="btn-read")
+    if not read_online_link or not isinstance(read_online_link, Tag):
+        raise RuntimeError("Failed to find the 'Read Online' link.")
+    read_online_url = (
+        str(read_online_link.get("data-domain", ""))
+        + "/epub/"
+        + str(read_online_link.get("data-readid", ""))
+    )
+    log(f"Fetching Read Online URL: {read_online_url}", verbose)
+    content_opf_url = get_content_opf_url(read_online_url, verbose=verbose)
+    epub_base_url = content_opf_url.rsplit("/", 1)[0]
+    return epub_base_url, content_opf_url
+
+
 def main():
     parser = argparse.ArgumentParser(description="Fetch and create an EPUB file.")
-    parser.add_argument("epub_filename", help="The name of the EPUB file to create")
+    parser.add_argument("book_url", help="The URL of the book on epub.pub")
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose output"
     )
-
     args = parser.parse_args()
-    epub_filename = args.epub_filename
+    book_url = args.book_url
     verbose = args.verbose
 
-    base_url = "https://asset.epub.pub/epub/" + epub_filename
-    output_base_dir = "downloaded_epubs"
-    epub_dir = os.path.join(
-        output_base_dir, os.path.splitext(epub_filename)[0] + "_temp"
-    )
+    if not book_url.startswith("https://www.epub.pub/"):
+        print("Error: The provided URL is not from 'https://www.epub.pub/'.")
+        sys.exit(1)
 
     try:
-        create_epub(base_url, epub_dir, epub_filename, verbose=verbose)
+        epub_base_url, content_opf_url = get_epub_base_url(book_url, verbose=verbose)
+        epub_filename = content_opf_url.split("/")[-2] + ".epub"
+        output_base_dir = "downloaded_epubs"
+        epub_dir = os.path.join(
+            output_base_dir, epub_filename.rsplit(".", 1)[0] + "_temp"
+        )
+        create_epub(epub_base_url, epub_dir, epub_filename, verbose=verbose)
     except Exception as e:
         print(f"Failed to create EPUB: {e}")
 
