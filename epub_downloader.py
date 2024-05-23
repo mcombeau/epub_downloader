@@ -40,6 +40,7 @@ from tqdm import tqdm
 from xml.etree import ElementTree as ET
 
 
+# Class Definitions
 class EpubContext:
     def __init__(self, base_url, output_dir, epub_filename):
         self.base_url = base_url
@@ -62,9 +63,11 @@ class EpubContext:
         )
 
 
+# Global Variables
 verbose = False
 
 
+# Utility Functions
 def log(message, override_verbose=False):
     if verbose or override_verbose:
         print(message)
@@ -88,12 +91,28 @@ def fetch_and_save(url, path, retries=3, delay=5):
     return False
 
 
-def get_content_opf_path(context):
-    container_xml_url = f"{context.base_url}/META-INF/container.xml"
-    container_xml_path = os.path.join(context.output_dir, "temp_container.xml")
+def get_args():
+    parser = argparse.ArgumentParser(
+        description="Download an ebook from https://www.epub.pub/ and create an EPUB file."
+    )
+    parser.add_argument("book_url", help="The URL of the book on https://www.epub.pub/")
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable verbose output"
+    )
+    return parser.parse_args()
+
+
+# EPUB Download and Creation Functions
+def get_container_xml(context):
+    container_xml_url = os.path.join(context.base_url, "META-INF/container.xml")
+    container_xml_path = os.path.join(context.output_dir, "META-INF/container.xml")
 
     if not fetch_and_save(container_xml_url, container_xml_path):
         raise RuntimeError(f"Failed to fetch container.xml from {container_xml_url}")
+
+
+def get_content_opf_path(context):
+    container_xml_path = os.path.join(context.output_dir, "META-INF/container.xml")
 
     try:
         with open(container_xml_path, "r") as file:
@@ -105,15 +124,13 @@ def get_content_opf_path(context):
                 raise RuntimeError(
                     "Failed to find the rootfile element in container.xml."
                 )
-            context.content_opf_path = str(rootfile_element.get("full-path"))
-            log(f"Found content.opf at: {context.content_opf_path}")
+            content_opf_path = str(rootfile_element.get("full-path"))
+            log(f"Found content.opf at: {content_opf_path}")
     except Exception as e:
         log(f"Error reading container.xml: {e}")
         raise
-    finally:
-        os.remove(container_xml_path)
 
-    return context.content_opf_path
+    return content_opf_path
 
 
 def create_mimetype_file(output_dir):
@@ -122,22 +139,6 @@ def create_mimetype_file(output_dir):
     with open(mimetype_path, "w") as file:
         file.write("application/epub+zip")
     log(f"Created mimetype file at: {mimetype_path}")
-
-
-def create_container_xml(output_dir, content_opf_relative_path):
-    meta_inf_path = os.path.join(output_dir, "META-INF")
-    os.makedirs(meta_inf_path, exist_ok=True)
-    container_xml_path = os.path.join(meta_inf_path, "container.xml")
-    with open(container_xml_path, "w") as file:
-        file.write(
-            f"""<?xml version="1.0"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-    <rootfiles>
-        <rootfile full-path="{content_opf_relative_path}" media-type="application/oebps-package+xml"/>
-    </rootfiles>
-</container>"""
-        )
-    log(f"Created container.xml at: {container_xml_path}")
 
 
 def parse_content_opf(content_opf_path):
@@ -198,7 +199,6 @@ def setup_epub_files(context):
         raise RuntimeError(f"Failed to fetch toc.ncx from {toc_ncx_url}")
 
     create_mimetype_file(context.output_dir)
-    create_container_xml(context.output_dir, context.content_opf_path)
 
 
 def download_epub_content(context):
@@ -212,6 +212,7 @@ def download_epub_content(context):
 
 def create_epub(context):
     try:
+        get_container_xml(context)
         create_directory_structure(context)
         setup_epub_files(context)
         download_epub_content(context)
@@ -226,6 +227,7 @@ def create_epub(context):
     log(f"Cleaned up temporary directory: {context.output_dir}")
 
 
+# URL Parsing Functions
 def get_content_opf_url(spread_url):
     response = requests.get(spread_url)
     response.raise_for_status()
@@ -282,17 +284,7 @@ def create_epub_context(book_url):
     return EpubContext(epub_base_url, epub_dir, epub_filename)
 
 
-def get_args():
-    parser = argparse.ArgumentParser(
-        description="Download an ebook from https://www.epub.pub/ and create an EPUB file."
-    )
-    parser.add_argument("book_url", help="The URL of the book on https://www.epub.pub/")
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Enable verbose output"
-    )
-    return parser.parse_args()
-
-
+# Main Function
 def main():
     global verbose
 
