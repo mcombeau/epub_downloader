@@ -7,6 +7,7 @@ from requests.exceptions import RequestException
 from time import sleep
 from bs4 import BeautifulSoup
 from tqdm import tqdm
+from xml.etree import ElementTree as ET
 
 
 def log(message, verbose):
@@ -35,34 +36,71 @@ def fetch_and_save(url, path, retries=3, delay=5, verbose=False):
     return False
 
 
+def get_content_opf_path(base_url, output_dir, verbose=False):
+    container_xml_url = f"{base_url}/META-INF/container.xml"
+    container_xml_path = os.path.join(output_dir, "temp_container.xml")
+
+    if not fetch_and_save(container_xml_url, container_xml_path, verbose=verbose):
+        raise RuntimeError(f"Failed to fetch container.xml from {container_xml_url}")
+
+    try:
+        with open(container_xml_path, "r") as file:
+            container_xml_content = file.read()
+            tree = ET.ElementTree(ET.fromstring(container_xml_content))
+            root = tree.getroot()
+            namespace = {"n": "urn:oasis:names:tc:opendocument:xmlns:container"}
+            rootfile_element = root.find("n:rootfiles/n:rootfile", namespace)
+            if rootfile_element is None:
+                raise RuntimeError(
+                    "Failed to find the rootfile element in container.xml."
+                )
+            content_opf_path = rootfile_element.get("full-path")
+            if not content_opf_path:
+                raise RuntimeError(
+                    "The full-path attribute is missing or empty in the rootfile element."
+                )
+            log(f"Found content.opf at: {content_opf_path}", verbose)
+    except Exception as e:
+        log(f"Error reading container.xml: {e}", verbose)
+        raise
+
+    finally:
+        if os.path.exists(container_xml_path):
+            os.remove(container_xml_path)
+
+    return content_opf_path
+
+
 def create_mimetype_file(output_dir, verbose=False):
     mimetype_path = os.path.join(output_dir, "mimetype")
+    log(f"Creating mimetype file at: {mimetype_path}", verbose)
     with open(mimetype_path, "w") as file:
         file.write("application/epub+zip")
     log(f"Created mimetype file at: {mimetype_path}", verbose)
 
 
-def create_container_xml(output_dir, verbose=False):
+def create_container_xml(output_dir, content_opf_relative_path, verbose=False):
     meta_inf_path = os.path.join(output_dir, "META-INF")
     os.makedirs(meta_inf_path, exist_ok=True)
     container_xml_path = os.path.join(meta_inf_path, "container.xml")
     with open(container_xml_path, "w") as file:
         file.write(
-            """<?xml version="1.0"?>
+            f"""<?xml version="1.0"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
     <rootfiles>
-        <rootfile full-path="content.opf" media-type="application/oebps-package+xml"/>
+        <rootfile full-path="{content_opf_relative_path}" media-type="application/oebps-package+xml"/>
     </rootfiles>
 </container>"""
         )
     log(f"Created container.xml at: {container_xml_path}", verbose)
 
 
-def parse_content_opf(content_opf_path):
+def parse_content_opf(content_opf_path, verbose=False):
     with open(content_opf_path, "r") as file:
         content_opf = file.read()
     soup = BeautifulSoup(content_opf, "xml")
     items = soup.find_all("item")
+    log(f"Found {len(items)} items in content.opf", verbose)
     return items
 
 
@@ -78,6 +116,11 @@ def create_epub_archive(output_dir, epub_filename, verbose=False):
     epub_path = os.path.join(os.path.dirname(output_dir), epub_filename)
     log(f"Creating EPUB at: {epub_path}", verbose)
     with zipfile.ZipFile(epub_path, "w", allowZip64=True) as epub:
+        epub.write(
+            os.path.join(output_dir, "mimetype"),
+            "mimetype",
+            compress_type=zipfile.ZIP_STORED,
+        )
         for foldername, _, filenames in os.walk(output_dir):
             for filename in filenames:
                 if filename == "mimetype":
@@ -92,23 +135,39 @@ def create_epub_archive(output_dir, epub_filename, verbose=False):
 def create_epub(base_url, output_dir, epub_filename, verbose=False):
     try:
         os.makedirs(output_dir, exist_ok=True)
-        log(f"Output directory created: {output_dir}", verbose)
 
-        content_opf_path = os.path.join(output_dir, "content.opf")
-        toc_ncx_path = os.path.join(output_dir, "toc.ncx")
+        content_opf_path = get_content_opf_path(base_url, output_dir, verbose=verbose)
+        if not content_opf_path:
+            raise RuntimeError("The content_opf_path is empty or None.")
+        content_opf_full_path = os.path.join(output_dir, content_opf_path)
+        content_opf_dir = os.path.dirname(content_opf_full_path)
+        os.makedirs(content_opf_dir, exist_ok=True)
 
         if not fetch_and_save(
-            f"{base_url}/content.opf", content_opf_path, verbose=verbose
+            f"{base_url}/{content_opf_path}", content_opf_full_path, verbose=verbose
         ):
             raise RuntimeError(f"Failed to fetch content.opf from {base_url}")
-        if not fetch_and_save(f"{base_url}/toc.ncx", toc_ncx_path, verbose=verbose):
-            raise RuntimeError(f"Failed to fetch toc.ncx from {base_url}")
+
+        if "OEBPS" in content_opf_path:
+            base_file_url = f"{base_url}/OEBPS"
+        else:
+            base_file_url = base_url
+
+        toc_ncx_url = f"{base_file_url}/toc.ncx"
+        toc_ncx_path = os.path.join(content_opf_dir, "toc.ncx")
+        if not fetch_and_save(toc_ncx_url, toc_ncx_path, verbose=verbose):
+            raise RuntimeError(f"Failed to fetch toc.ncx from {toc_ncx_url}")
 
         create_mimetype_file(output_dir, verbose=verbose)
-        create_container_xml(output_dir, verbose=verbose)
+        create_container_xml(output_dir, content_opf_path, verbose=verbose)
 
-        items = parse_content_opf(content_opf_path)
-        fetch_all_files(base_url, output_dir, items, verbose=verbose)
+        items = parse_content_opf(content_opf_full_path, verbose=verbose)
+        fetch_all_files(
+            base_file_url,
+            os.path.dirname(content_opf_full_path),
+            items,
+            verbose=verbose,
+        )
 
         create_epub_archive(output_dir, epub_filename, verbose=verbose)
 
@@ -133,16 +192,14 @@ def main():
     epub_filename = args.epub_filename
     verbose = args.verbose
 
-    base_url = "https://asset.epub.pub/epub"
+    base_url = "https://asset.epub.pub/epub/" + epub_filename
     output_base_dir = "downloaded_epubs"
     epub_dir = os.path.join(
         output_base_dir, os.path.splitext(epub_filename)[0] + "_temp"
     )
 
     try:
-        create_epub(
-            base_url + "/" + epub_filename, epub_dir, epub_filename, verbose=verbose
-        )
+        create_epub(base_url, epub_dir, epub_filename, verbose=verbose)
     except Exception as e:
         print(f"Failed to create EPUB: {e}")
 
