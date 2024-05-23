@@ -24,7 +24,7 @@ The script fetches the content of an ebook from a given URL on [epub.pub](https:
 pip install requests beautifulsoup4 tqdm
 ```
 
-# Usage
+## Usage
 
 To run the script, use the following command:
 
@@ -36,13 +36,13 @@ python epub_downloader.py [book_url] [-v]
 - `book_url`: The URL of the book on epub.pub
 - `-v`, `--verbose`: Enable verbose output (optional)
 
-## Example
+### Example
 
 ```bash
 python epub_downloader.py https://www.epub.pub/book/it-by-stephen-king -v
 ```
 
-# Notes
+## Notes
 
 - Ensure that the provided book URL is from the https://www.epub.pub/ domain.
 - The script will create a temporary directory to store downloaded files, which will be cleaned up after the EPUB is created.
