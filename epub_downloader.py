@@ -271,13 +271,12 @@ def get_epub_base_url(book_url):
     return epub_base_url
 
 
-def validate_book_url(book_url):
-    if not book_url.startswith("https://www.epub.pub/"):
-        raise RuntimeError("The provided URL is not from 'https://www.epub.pub/'.")
-
-
 def create_epub_context(book_url):
-    epub_base_url = get_epub_base_url(book_url)
+    if book_url.startswith("https://www.epub.pub/"):
+        epub_base_url = get_epub_base_url(book_url)
+    else:
+        epub_base_url = book_url
+
     epub_filename = book_url.split("/")[-1] + ".epub"
     output_base_dir = "downloaded_epubs"
     epub_dir = os.path.join(output_base_dir, epub_filename.rsplit(".", 1)[0] + "_temp")
@@ -293,7 +292,6 @@ def main():
     verbose = args.verbose
 
     try:
-        validate_book_url(book_url)
         context = create_epub_context(book_url)
         create_epub(context)
     except Exception as e:
