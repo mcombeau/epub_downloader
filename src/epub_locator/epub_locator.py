@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup, Tag
 class EpubLocator:
     def __init__(self, url: str):
         self.url: str = url
+        self.ebook_name: str = "unknown_ebook"
 
     def get_epub_base_url(self) -> str:
         parse_result = urlparse(self.url)
@@ -18,13 +19,18 @@ class EpubLocator:
             for part in parts:
                 epub_base_url_parts.append(part)
                 if part.endswith(".epub"):
+                    self.ebook_name = part.split('.')[0]
                     break
             epub_base_url = "/".join(epub_base_url_parts)
             # log(f"Determined EPUB base URL: {epub_base_url}")
             return epub_base_url
         else:
             # log(f"Determined EPUB base URL: {epub_base_url}")
+            self.ebook_name = self.url.split('/')[-1]
             return self.url
+
+    def get_ebook_name(self):
+        return self.ebook_name
 
     def _get_epub_pub_spread_url(self) -> str:
         response = requests.get(self.url)
