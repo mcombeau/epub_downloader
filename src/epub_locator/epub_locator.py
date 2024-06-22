@@ -1,12 +1,13 @@
 from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup, Tag
-from logger.logger import Logger
+
+from logster.logster import Logster
 
 
 class EpubLocator:
-    def __init__(self, logger: Logger, url: str):
-        self.logger: Logger = logger
+    def __init__(self, logster: Logster, url: str):
+        self.logster: Logster = logster
         self.url: str = url
         self.ebook_name: str = "unknown_ebook"
 
@@ -23,10 +24,10 @@ class EpubLocator:
                     self.ebook_name = part.split('.')[0]
                     break
             epub_base_url: str = "/".join(epub_base_url_parts)
-            self.logger.log(f"Determined EPUB base URL: {epub_base_url}")
+            self.logster.log(f"Determined EPUB base URL: {epub_base_url}")
             return epub_base_url
         else:
-            self.logger.log(f"Determined EPUB base URL: {self.url}")
+            self.logster.log(f"Determined EPUB base URL: {self.url}")
             self.ebook_name = self.url.split('/')[-1]
             return self.url
 
@@ -59,5 +60,5 @@ class EpubLocator:
         ):
             raise RuntimeError("Failed to find content.opf URL in the spread page.")
         content_opf_url: str = str(asset_url["value"])
-        self.logger.log(f"Found content.opf URL: {content_opf_url}")
+        self.logster.log(f"Found content.opf URL: {content_opf_url}")
         return content_opf_url

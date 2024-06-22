@@ -1,7 +1,7 @@
 import argparse
 from epub_file_downloader.epub_file_downloader import EpubFileDownloader
 from epub_locator.epub_locator import EpubLocator
-from logger.logger import Logger
+from logster.logster import Logster
 
 
 def get_args():
@@ -19,7 +19,7 @@ def main():
     args = get_args()
 
     try:
-        logger = Logger(args.verbose)
+        logger = Logster(args.verbose)
         locator = EpubLocator(logger, args.book_url)
         base_url = locator.get_epub_base_url()
         ebook_name = locator.get_ebook_name()

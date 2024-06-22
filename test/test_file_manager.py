@@ -3,13 +3,14 @@ import shutil
 import unittest
 
 from src.file_manager.file_manager import FileManager, OUTPUT_DIR
+from src.logster.logster import Logster
 
 
 class TestFileManager(unittest.TestCase):
     def setUp(self):
         self.ebook_name = 'test_ebook'
         self.test_output_dir = OUTPUT_DIR
-        self.file_manager = FileManager(self.ebook_name)
+        self.file_manager = FileManager(Logster(verbose=False), self.ebook_name)
 
         if os.path.exists(self.test_output_dir):
             shutil.rmtree(self.test_output_dir)
