@@ -4,12 +4,13 @@ import unittest
 from unittest.mock import patch, Mock
 from src.epub_file_downloader.epub_file_downloader import EpubFileDownloader
 from src.file_manager.file_manager import OUTPUT_DIR
+from src.logster.logster import Logster
 
 
 class TestEbookDownloader(unittest.TestCase):
     def setUp(self):
         self.base_url = "http://example.com"
-        self.downloader = EpubFileDownloader(self.base_url, 'test_ebook')
+        self.downloader = EpubFileDownloader(Logster(verbose=False), self.base_url, 'test_ebook')
         self.file_path = "test_file.txt"
         self.longer_file_path = "subdir/test_file.txt"
 

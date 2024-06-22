@@ -1,25 +1,24 @@
 import os.path
 from http import HTTPStatus
-from urllib.parse import urljoin
 from time import sleep
 import requests
 from bs4 import BeautifulSoup
 from requests import HTTPError
-from file_manager.file_manager import FileManager
 from tqdm import tqdm
 
-from logger.logger import Logger
+from file_manager.file_manager import FileManager
+from logster.logster import Logster
 
 MAX_RETRIES = 3
 MAX_DELAY = 5
 
 
 class EpubFileDownloader:
-    def __init__(self, logger: Logger, base_url: str, ebook_name: str):
-        self.logger: Logger = logger
+    def __init__(self, logster: Logster, base_url: str, ebook_name: str):
+        self.logster: Logster = logster
         self.base_url: str = base_url
         self.ebook_name: str = ebook_name
-        self.file_manager: str = FileManager(logger, ebook_name)
+        self.file_manager: str = FileManager(logster, ebook_name)
         self.retry_codes: list[int] = [
             HTTPStatus.TOO_MANY_REQUESTS,
             HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -32,7 +31,7 @@ class EpubFileDownloader:
         url: str = f"{self.base_url}/{path}"
         for attempt in range(MAX_RETRIES):
             try:
-                self.logger.log(
+                self.logster.log(
                     f"Fetching URL: {url} (Attempt {attempt + 1}/{MAX_RETRIES})"
                 )
                 response = requests.get(url)
@@ -40,17 +39,17 @@ class EpubFileDownloader:
                 if response.content is None:
                     return False
                 self.file_manager.save_content_to_file(response.content, path)
-                self.logger.log(f"Successfully fetched and saved: {url} to {path}")
+                self.logster.log(f"Successfully fetched and saved: {url} to {path}")
                 return True
             except HTTPError as e:
-                self.logger.log(
+                self.logster.log(
                     f"Failed to fetch: {url}, Attempt {attempt + 1}/{MAX_RETRIES}, Error: {e}"
                 )
                 code = e.response.status_code
                 if code in self.retry_codes:
                     sleep(MAX_DELAY)
                     continue
-        self.logger.log(
+        self.logster.log(
             f"Giving up on fetching URL: {url} after {MAX_RETRIES} attempts."
         )
         return False
@@ -87,12 +86,12 @@ class EpubFileDownloader:
         else:
             file_paths = [f"{path['href']}" for path in file_paths]
 
-        self.logger.log(f"Found {len(file_paths)} file paths in content.opf")
+        self.logster.log(f"Found {len(file_paths)} file paths in content.opf")
         return file_paths
 
     def download_all_files(self, file_paths: list[str]) -> None:
         for path in tqdm(
-            file_paths, desc="Fetching files", disable=self.logger.verbose
+            file_paths, desc="Fetching files", disable=self.logster.verbose
         ):
             full_url: str = f"{self.base_url}/{path}"
             response = requests.get(full_url)
@@ -100,27 +99,27 @@ class EpubFileDownloader:
             self.file_manager.save_content_to_file(response.content, path)
 
     def download_epub_files(self) -> None:
-        self.logger.log("Creating mimetype file...")
+        self.logster.log("Creating mimetype file...")
         self.file_manager.save_content_to_file(b"application/epub+zip", "mimetype")
 
-        self.logger.log("Downloading container.xml file...")
+        self.logster.log("Downloading container.xml file...")
         container_xml_path = "META-INF/container.xml"
         self.download_file(container_xml_path)
 
-        self.logger.log("Extracting content.opf path from container.xml...")
+        self.logster.log("Extracting content.opf path from container.xml...")
         content_opf_path = self.extract_content_opf_path_from_xml(container_xml_path)
 
-        self.logger.log("Downloading content.opf file...")
+        self.logster.log("Downloading content.opf file...")
         self.download_file(content_opf_path)
 
-        self.logger.log("Getting file list from content.opf...")
+        self.logster.log("Getting file list from content.opf...")
         file_paths = self.get_file_paths_from_content_opf(content_opf_path)
 
-        self.logger.log("Downloading files...")
+        self.logster.log("Downloading files...")
         self.download_all_files(file_paths)
 
-        self.logger.log("Creating EPUB archive...")
+        self.logster.log("Creating EPUB archive...")
         self.file_manager.create_epub_archive()
 
-        self.logger.log("Deleting temporary files...")
+        self.logster.log("Deleting temporary files...")
         self.file_manager.cleanup_epub_file_directory()
