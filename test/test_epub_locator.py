@@ -32,7 +32,8 @@ class TestEpubLocator(unittest.TestCase):
         else:
             raise RuntimeError(f"Unexpected URL: {url}")
 
-    def _create_mock_response(self, html_content):
+    @staticmethod
+    def _create_mock_response(html_content):
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.content = html_content.encode('utf-8')
@@ -74,7 +75,7 @@ class TestEpubLocator(unittest.TestCase):
         self.assertEqual(expected_url, result)
 
     @patch('src.epub_locator.epub_locator.requests.get')
-    def test_should_return_epub_pub_content_opf_url_given_epub_pub_url(self, mock_get):
+    def test_should_return_epub_pub_base_url_given_epub_pub_url(self, mock_get):
         mock_get.side_effect = self.mock_requests_get
 
         locator = EpubLocator(self.epub_pub_url)
@@ -82,6 +83,47 @@ class TestEpubLocator(unittest.TestCase):
 
         expected_url = self.base_epub_pub_url
         self.assertEqual(expected_url, result)
+
+        calls = [
+            unittest.mock.call(self.epub_pub_url),
+            unittest.mock.call(self.spread_url)
+        ]
+        mock_get.assert_has_calls(calls, any_order=False)
+
+    @patch('src.epub_locator.epub_locator.requests.get')
+    def test_should_return_unknown_ebook_name_before_getting_base_url(self, mock_get):
+        locator = EpubLocator(self.epub_pub_url)
+
+        expected_name = "unknown_ebook"
+        result = locator.get_ebook_name()
+
+        self.assertEqual(expected_name, result)
+
+        mock_get.assert_not_called()
+
+    @patch('src.epub_locator.epub_locator.requests.get')
+    def test_should_return_ebook_name_given_non_epub_pub_url_after_getting_base_url(self, mock_get):
+        locator = EpubLocator(self.non_epub_pub_url)
+        locator.get_epub_base_url()
+
+        expected_name = "it-book-565296"
+        result = locator.get_ebook_name()
+
+        self.assertEqual(expected_name, result)
+
+        mock_get.assert_not_called()
+
+    @patch('src.epub_locator.epub_locator.requests.get')
+    def test_should_return_ebook_name_given_epub_pub_url_after_getting_base_url(self, mock_get):
+        mock_get.side_effect = self.mock_requests_get
+
+        locator = EpubLocator(self.epub_pub_url)
+        locator.get_epub_base_url()
+
+        expected_name = "it-by-stephen-king-1"
+        result = locator.get_ebook_name()
+
+        self.assertEqual(expected_name, result)
 
         calls = [
             unittest.mock.call(self.epub_pub_url),
