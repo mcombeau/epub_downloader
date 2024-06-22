@@ -1,11 +1,7 @@
 import argparse
-
-verbose = False
-
-
-def log(message, override_verbose=False):
-    if verbose or override_verbose:
-        print(message)
+from epub_file_downloader.epub_file_downloader import EpubFileDownloader
+from epub_locator.epub_locator import EpubLocator
+from logger.logger import Logger
 
 
 def get_args():
@@ -20,17 +16,17 @@ def get_args():
 
 
 def main():
-    global verbose
-
     args = get_args()
 
-    verbose = args.verbose
-
     try:
-        # download_epub_files(args.book_url)
-        # create_epub()
+        logger = Logger(args.verbose)
+        locator = EpubLocator(logger, args.book_url)
+        base_url = locator.get_epub_base_url()
+        ebook_name = locator.get_ebook_name()
+        downloader = EpubFileDownloader(logger, base_url, ebook_name)
+        downloader.download_epub_files()
     except Exception as e:
-        log(f"Failed to create EPUB: {e}", override_verbose=True)
+        logger.log(f"Failed to create EPUB: {e}", override_verbose=True)
 
 
 if __name__ == "__main__":
