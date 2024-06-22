@@ -3,6 +3,11 @@ bs4==0.0.2
 certifi==2024.6.2
 charset-normalizer==3.3.2
 idna==3.7
+iniconfig==2.0.0
+lxml==5.2.2
+packaging==24.1
+pluggy==1.5.0
+pytest==8.2.2
 requests==2.32.3
 soupsieve==2.5
 tqdm==4.66.4
