@@ -56,3 +56,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+#Editors
+.vscode
+.idea
