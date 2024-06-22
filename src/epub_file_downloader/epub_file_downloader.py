@@ -32,7 +32,9 @@ class EpubFileDownloader:
         url = f"{self.base_url}/{path}"
         for attempt in range(MAX_RETRIES):
             try:
-                self.logger.log(f"Fetching URL: {url} (Attempt {attempt + 1}/{MAX_RETRIES})")
+                self.logger.log(
+                    f"Fetching URL: {url} (Attempt {attempt + 1}/{MAX_RETRIES})"
+                )
                 response = requests.get(url)
                 response.raise_for_status()
                 if response.content is None:
@@ -41,12 +43,16 @@ class EpubFileDownloader:
                 self.logger.log(f"Successfully fetched and saved: {url} to {path}")
                 return True
             except HTTPError as e:
-                self.logger.log(f"Failed to fetch: {url}, Attempt {attempt + 1}/{MAX_RETRIES}, Error: {e}")
+                self.logger.log(
+                    f"Failed to fetch: {url}, Attempt {attempt + 1}/{MAX_RETRIES}, Error: {e}"
+                )
                 code = e.response.status_code
                 if code in self.retry_codes:
                     sleep(MAX_DELAY)
                     continue
-        self.logger.log(f"Giving up on fetching URL: {url} after {MAX_RETRIES} attempts.")
+        self.logger.log(
+            f"Giving up on fetching URL: {url} after {MAX_RETRIES} attempts."
+        )
         return False
 
     def extract_content_opf_path_from_xml(self, container_xml_path):
@@ -57,7 +63,9 @@ class EpubFileDownloader:
                 rootfile_element = soup.find("rootfile")
 
                 if rootfile_element is None or not rootfile_element.get("full-path"):
-                    raise RuntimeError("Failed to find the rootfile element in container.xml.")
+                    raise RuntimeError(
+                        "Failed to find the rootfile element in container.xml."
+                    )
 
                 content_opf_path = rootfile_element.get("full-path")
 
@@ -73,14 +81,18 @@ class EpubFileDownloader:
         file_paths = soup.find_all("item")
         subdirectory = os.path.dirname(content_opf_path)
         if subdirectory:
-            file_paths = [f"{subdirectory}/{path["href"]}" for path in file_paths]
+            file_paths = [f"{subdirectory}/{path['href']}" for path in file_paths]
+        else:
+            file_paths = [f"{path['href']}" for path in file_paths]
         self.logger.log(f"Found {len(file_paths)} file paths in content.opf")
         for path in file_paths:
             self.logger.log(f"path found: {path}")
         return file_paths
 
     def download_all_files(self, file_paths):
-        for path in tqdm(file_paths, desc="Fetching files", disable=self.logger.verbose):
+        for path in tqdm(
+            file_paths, desc="Fetching files", disable=self.logger.verbose
+        ):
             full_url = f"{self.base_url}/{path}"
             response = requests.get(full_url)
             response.raise_for_status()
