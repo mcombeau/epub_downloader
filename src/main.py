@@ -32,7 +32,7 @@ def main():
 
     try:
         logger = Logster(args.verbose)
-        locator = EpubLocator(logger, args.book_url)
+        locator = EpubLocator(logger, args.book_url.rstrip('/'))
         base_url = locator.get_epub_base_url()
         ebook_name = locator.get_ebook_name()
         downloader = EpubFileDownloader(logger, base_url, ebook_name)
