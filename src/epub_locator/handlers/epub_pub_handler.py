@@ -48,8 +48,8 @@ class EpubPubHandler(EpubHandler):
             raise RuntimeError("Failed to find the 'Read Online' link.")
 
         domain: str = read_online_button.get("data-domain", "")
-        spread_id: str = read_online_button.get("data-readid", "")
-        read_online_url: str = f"{domain}/epub/{spread_id}"
+        read_id: str = read_online_button.get("data-readid", "")
+        read_online_url: str = f"{domain}/epub/{read_id}"
 
         return read_online_url
 
