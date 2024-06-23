@@ -6,6 +6,8 @@ This script downloads an ebook from [epub.pub](https://www.epub.pub/) and create
 
 The script fetches the content of an ebook from a given URL on [epub.pub](https://www.epub.pub/), parses the necessary files, and compiles them into a single EPUB file. It supports verbose output to help track the progress and identify issues during the download and creation process.
 
+Works on Linux, MacOS and Windows.
+
 ## Prerequisites
 
 - Python 3.6 or higher
