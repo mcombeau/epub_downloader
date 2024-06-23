@@ -9,7 +9,11 @@ The script fetches the content of an ebook from a given URL on [epub.pub](https:
 ## Prerequisites
 
 - Python 3.6 or higher
-- Install requirements:
+- Dependencies:
+    - `bs4`
+    - `lxml`
+    - `tqdm`
+    - `urllib3`
 
 ## Installation
 
