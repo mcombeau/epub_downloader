@@ -33,7 +33,7 @@ To run the script, use the following command:
 
 ```bash
 Copy code
-python epub_downloader [book_url] [-v]
+python epub_downloader.py [book_url] [-v]
 ```
 
 - `book_url`: The URL of the book on epub.pub
@@ -43,20 +43,18 @@ python epub_downloader [book_url] [-v]
 
 The script handles downloading directly from the book page:
 ```bash
-python epub_downloader https://www.epub.pub/book/it-by-stephen-king -v
+python epub_downloader.py https://www.epub.pub/book/it-by-stephen-king -v
 ```
 
 Or you can download from the spread page (after clicking on the Read Online button):
 ```bash
-python epub_downloader https://spread.epub.pub/epub/5a5827247412f4000781f18e -v
+python epub_downloader.py https://spread.epub.pub/epub/5a5827247412f4000781f18e -v
 ```
 
 Or if you're into digging for the URL manually, you can download directly from an asset page:
 ```bash
-python epub_downloader https://asset.epub.pub/epub/it-by-stephen-king-1.epub -v
+python epub_downloader.py https://asset.epub.pub/epub/it-by-stephen-king-1.epub -v
 ```
-
-Note that `epub_downloader` is only a symbolic link to `src/main.py`.
 
 
 ## Notes
