@@ -1,7 +1,7 @@
 from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup, Tag
-from logster.logster import Logster
+from src.logster.logster import Logster
 
 
 class EpubLocator:

@@ -2,7 +2,7 @@ import os
 import shutil
 import zipfile
 
-from logster.logster import Logster
+from src.logster.logster import Logster
 
 OUTPUT_DIR = "downloaded_epubs"
 
@@ -28,7 +28,7 @@ class FileManager:
         self.logster.log(f"Successfully saved: {full_path}")
 
     def get_local_file_path(self, path: str) -> str:
-        parts: list[str] = path.split('/')
+        parts: list[str] = path.split("/")
         acc: str = self.output_directory
 
         for part in parts:

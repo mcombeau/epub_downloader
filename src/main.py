@@ -1,7 +1,19 @@
 import argparse
-from epub_file_downloader.epub_file_downloader import EpubFileDownloader
-from epub_locator.epub_locator import EpubLocator
-from logster.logster import Logster
+import sys
+import os
+
+
+def adjust_sys_path():
+    script_path = os.path.realpath(__file__)
+    base_dir = os.path.dirname(os.path.dirname(script_path))
+    sys.path.append(base_dir)
+
+
+adjust_sys_path()
+
+from src.epub_file_downloader.epub_file_downloader import EpubFileDownloader
+from src.epub_locator.epub_locator import EpubLocator
+from src.logster.logster import Logster
 
 
 def get_args():

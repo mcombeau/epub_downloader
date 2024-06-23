@@ -6,8 +6,8 @@ from bs4 import BeautifulSoup
 from requests import HTTPError
 from tqdm import tqdm
 
-from file_manager.file_manager import FileManager
-from logster.logster import Logster
+from src.file_manager.file_manager import FileManager
+from src.logster.logster import Logster
 
 MAX_RETRIES = 3
 MAX_DELAY = 5
