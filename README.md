@@ -60,7 +60,7 @@ python epub_downloader.py https://www.epub.pub/book/it-by-stephen-king -v
 python epub_downloader.py https://www.readanybook.com/ebook/it-book-565296 -v
 ```
 
-Or you can download from the epub.pub spread or continuous page (after clicking on the Read Online button):
+Or you can download from the epub.pub spread or continuous page (after clicking on one of the Read Online buttons):
 ```bash
 python epub_downloader.py https://spread.epub.pub/epub/5a5827247412f4000781f18e -v
 python epub_downloader.py https://continuous.epub.pub/epub/5a5827247412f4000781f18e -v
