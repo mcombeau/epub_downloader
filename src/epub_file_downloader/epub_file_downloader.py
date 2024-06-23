@@ -39,7 +39,6 @@ class EpubFileDownloader:
                 if response.content is None:
                     return False
                 self.file_manager.save_content_to_file(response.content, path)
-                self.logster.log(f"Successfully fetched and saved: {url} to {path}")
                 return True
             except HTTPError as e:
                 self.logster.log(
@@ -93,33 +92,30 @@ class EpubFileDownloader:
         for path in tqdm(
             file_paths, desc="Fetching files", disable=self.logster.verbose
         ):
-            full_url: str = f"{self.base_url}/{path}"
-            response = requests.get(full_url)
-            response.raise_for_status()
-            self.file_manager.save_content_to_file(response.content, path)
+            self.download_file(path)
 
     def download_epub_files(self) -> None:
-        self.logster.log("Creating mimetype file...")
+        self.logster.log("---- Creating mimetype file...")
         self.file_manager.save_content_to_file(b"application/epub+zip", "mimetype")
 
-        self.logster.log("Downloading container.xml file...")
+        self.logster.log("---- Downloading container.xml file...")
         container_xml_path = "META-INF/container.xml"
         self.download_file(container_xml_path)
 
-        self.logster.log("Extracting content.opf path from container.xml...")
+        self.logster.log("---- Extracting content.opf path from container.xml...")
         content_opf_path = self.extract_content_opf_path_from_xml(container_xml_path)
 
-        self.logster.log("Downloading content.opf file...")
+        self.logster.log("---- Downloading content.opf file...")
         self.download_file(content_opf_path)
 
-        self.logster.log("Getting file list from content.opf...")
+        self.logster.log("---- Getting file list from content.opf...")
         file_paths = self.get_file_paths_from_content_opf(content_opf_path)
 
-        self.logster.log("Downloading files...")
+        self.logster.log("---- Downloading files...")
         self.download_all_files(file_paths)
 
-        self.logster.log("Creating EPUB archive...")
+        self.logster.log("---- Creating EPUB archive...")
         self.file_manager.create_epub_archive()
 
-        self.logster.log("Deleting temporary files...")
+        self.logster.log("---- Deleting temporary files...")
         self.file_manager.cleanup_epub_file_directory()

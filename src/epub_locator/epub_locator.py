@@ -1,7 +1,6 @@
 from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup, Tag
-
 from logster.logster import Logster
 
 
@@ -16,23 +15,37 @@ class EpubLocator:
         if parse_result.netloc == "www.epub.pub":
             spread_url: str = self._get_epub_pub_spread_url()
             content_opf_url: str = self._get_epub_pub_ebook_content_opf_url(spread_url)
-            parts: list[str] = content_opf_url.split("/")
-            epub_base_url_parts: list[str] = []
-            for part in parts:
-                epub_base_url_parts.append(part)
-                if part.endswith(".epub"):
-                    self.ebook_name = part.split('.')[0]
-                    break
-            epub_base_url: str = "/".join(epub_base_url_parts)
+            epub_base_url: str = self._get_epub_base_url_from_specific_url(
+                content_opf_url
+            )
+            self.logster.log(f"Determined EPUB base URL: {epub_base_url}")
+            return epub_base_url
+        elif parse_result.netloc == "spread.epub.pub":
+            content_opf_url: str = self._get_epub_pub_ebook_content_opf_url(self.url)
+            epub_base_url: str = self._get_epub_base_url_from_specific_url(
+                content_opf_url
+            )
             self.logster.log(f"Determined EPUB base URL: {epub_base_url}")
             return epub_base_url
         else:
             self.logster.log(f"Determined EPUB base URL: {self.url}")
-            self.ebook_name = self.url.split('/')[-1]
+            self.ebook_name = self.url.split("/")[-1].split(".")[0]
             return self.url
 
     def get_ebook_name(self) -> str:
         return self.ebook_name
+
+    def _get_epub_base_url_from_specific_url(self, url) -> str:
+        parts: list[str] = url.split("/")
+        epub_base_url_parts: list[str] = []
+
+        for part in parts:
+            epub_base_url_parts.append(part)
+            if part.endswith(".epub"):
+                self.ebook_name = part.split(".")[0]
+                break
+
+        return "/".join(epub_base_url_parts)
 
     def _get_epub_pub_spread_url(self) -> str:
         response = requests.get(self.url)
@@ -60,5 +73,4 @@ class EpubLocator:
         ):
             raise RuntimeError("Failed to find content.opf URL in the spread page.")
         content_opf_url: str = str(asset_url["value"])
-        self.logster.log(f"Found content.opf URL: {content_opf_url}")
         return content_opf_url
