@@ -9,10 +9,7 @@ The script fetches the content of an ebook from a given URL on [epub.pub](https:
 ## Prerequisites
 
 - Python 3.6 or higher
-- Required Python packages:
-  - `requests`
-  - `beautifulsoup4`
-  - `tqdm`
+- Install requirements:
 
 ## Installation
 
@@ -21,7 +18,7 @@ The script fetches the content of an ebook from a given URL on [epub.pub](https:
 2. Install the required Python packages using pip:
 
 ```bash
-pip install requests beautifulsoup4 tqdm
+pip install -r requirements.txt
 ```
 
 ## Usage
@@ -30,7 +27,7 @@ To run the script, use the following command:
 
 ```bash
 Copy code
-python epub_downloader.py [book_url] [-v]
+python epub_downloader [book_url] [-v]
 ```
 
 - `book_url`: The URL of the book on epub.pub
@@ -38,12 +35,26 @@ python epub_downloader.py [book_url] [-v]
 
 ### Example
 
+The script handles downloading directly from the book page:
 ```bash
-python epub_downloader.py https://www.epub.pub/book/it-by-stephen-king -v
+python epub_downloader https://www.epub.pub/book/it-by-stephen-king -v
 ```
+
+Or you can download from the spread page (after clicking on the Read Online button):
+```bash
+python epub_downloader https://spread.epub.pub/epub/5a5827247412f4000781f18e -v
+```
+
+Or if you're into digging for the URL manually, you can download directly from an asset page:
+```bash
+python epub_downloader https://asset.epub.pub/epub/it-by-stephen-king-1.epub -v
+```
+
+Note that `epub_downloader` is only a symbolic link to `src/main.py`.
+
 
 ## Notes
 
-- Ensure that the provided book URL is from the https://www.epub.pub/ domain.
+- Ensure that the provided book URL is from the https://www.epub.pub/ domain. Theoretically if you get the URL to another ebook reader source file such as `content.opf` or `container.xml`, this script will also work, but there are no guarantees.
 - The script will create a temporary directory to store downloaded files, which will be cleaned up after the EPUB is created.
 - **Support Authors: If you enjoy an ebook you downloaded using this script, please consider supporting the author by purchasing the book from a legitimate retailer.**
