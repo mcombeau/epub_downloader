@@ -14,3 +14,4 @@ soupsieve==2.5
 toml==0.10.2
 tqdm==4.66.4
 urllib3==2.2.2
+regex==2022.7.9
