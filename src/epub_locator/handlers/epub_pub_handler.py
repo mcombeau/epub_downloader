@@ -1,5 +1,5 @@
 from urllib.parse import urlparse
-
+import re
 import requests
 from bs4 import BeautifulSoup, Tag
 
@@ -58,12 +58,14 @@ class EpubPubHandler(EpubHandler):
         response = requests.get(read_online_url)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, "html.parser")
-        asset_url: str = soup.find("input", id="assetUrl")
+        for script in soup.findAll("script"):
+            potential_url = re.search(r'https?://\S+', str(script))
+            if potential_url:
+                if ".opf" in potential_url.group(0):
+                    asset_url: str = potential_url.group(0).split('.opf')[0]+'.opf'
         if (
                 not asset_url
-                or not isinstance(asset_url, Tag)
-                or not asset_url.get("value")
         ):
             raise RuntimeError("Failed to find content.opf URL in the spread page.")
-        content_opf_url: str = str(asset_url["value"])
-        return content_opf_url
+
+        return asset_url
