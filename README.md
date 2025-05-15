@@ -21,7 +21,7 @@ Works on Linux, MacOS and Windows.
 
 ## Prerequisites
 
-- Python 3.6 or higher
+- Python 3.6 or higher (Python 3.13 is known to have issues with a dependancy, libxml, so a prior version is recommended instead)
 - Dependencies:
     - `bs4`
     - `lxml`
